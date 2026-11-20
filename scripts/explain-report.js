@@ -1,0 +1,12 @@
+import { MongoMemoryServer } from 'mongodb-memory-server';
+import mongoose from 'mongoose';
+const root = '../src/';
+const { connectDb } = await import(root + 'db.js');
+const { seed } = await import(root + 'seed/seed.js');
+const { explainAll } = await import(root + 'insights.js');
+const { User } = await import(root + 'models/User.js');
+const m = await MongoMemoryServer.create(); await connectDb(m.getUri('x')); await seed();
+const r = await explainAll(await User.findOne({ role: 'admin' }));
+for (const q of r.data) console.log(q.name.padEnd(48), q.stages.join('>').padEnd(48), q.indexes.join(',').padEnd(40), `keys=${q.keysExamined} docs=${q.docsExamined}`);
+console.log('mongo version', (await mongoose.connection.db.admin().serverInfo()).version);
+await mongoose.disconnect(); await m.stop();
