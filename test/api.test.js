@@ -282,6 +282,30 @@ test('security: operator keys, jwt alg, json only, registration flag', async () 
   assert.equal(me.body.user.passwordHash, undefined);
 });
 
+test('admin sample queries run on real data with explain', async () => {
+  const list = await ctx.as('admin').get('/admin/db/samples');
+  assert.ok(list.body.data.length >= 8);
+  const denied = await ctx.as('user').get('/admin/db/samples');
+  assert.equal(denied.status, 403);
+  const karim = await User.findOne({ email: 'karim@ruhan.lol' });
+  const notes = await ctx.as('admin').get(`/admin/db/samples/notesOfUser?user=${karim._id}`);
+  assert.equal(notes.status, 200);
+  assert.ok(notes.body.resultCount >= 2);
+  assert.ok(notes.body.usesIndex && !notes.body.collscan);
+  assert.match(notes.body.shell, /db.notes.find/);
+  const byEmail = await ctx.as('admin').get('/admin/db/samples/userByEmail?email=karim@ruhan.lol');
+  assert.equal(byEmail.body.results[0].email, 'karim@ruhan.lol');
+  assert.equal(byEmail.body.results[0].passwordHash, undefined);
+  const lookup = await ctx.as('admin').get(`/admin/db/samples/postsOfUser?user=${karim._id}`);
+  assert.equal(lookup.body.results[0].posts.total[0].n, 2);
+  const bad = await ctx.as('admin').get('/admin/db/samples/notesOfUser?user=nope');
+  assert.equal(bad.status, 400);
+  const unknown = await ctx.as('admin').get('/admin/db/samples/dropDatabase');
+  assert.equal(unknown.status, 404);
+  const idx = await ctx.as('admin').get('/admin/db/indexes');
+  assert.equal(idx.body.collectionStats.length, 3);
+});
+
 test('only the planned indexes exist', async () => {
   const names = async (model) => (await model.collection.indexes()).map((i) => i.name).sort();
   assert.deepEqual(await names(User), ['_id_', 'email_1', 'interests_1']);

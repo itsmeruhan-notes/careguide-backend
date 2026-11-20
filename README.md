@@ -20,7 +20,7 @@ Node.js 24 · Express 5 · MongoDB 8 · Mongoose 9 · JWT · bcrypt · zod · Do
 | Posts | Public posts with tags, visible to every member |
 | Interests | Users grouped by interest (aggregation) |
 | User posts | A user's profile with their posts (aggregation with `$lookup`) |
-| Admin | User management (add, edit, soft delete, restore), all notes, DB insights with live query plans |
+| Admin | User management (add, edit, soft delete, restore), all notes, DB insights: collection stats, index sizes and usage, live query plans, and a set of predefined sample queries that run on the live data next to their `explain()` |
 | Lists | Every list is paginated, searched, filtered and sorted on the server |
 
 ## Data model — 3 collections

@@ -11,6 +11,7 @@ import { applyChanges, createdAudit, historyPage } from '../utils/history.js';
 import { listProjection } from './notes.js';
 import { publicUser } from './serializers.js';
 import { explainAll, indexReport } from '../insights.js';
+import { runSample, sampleList } from '../samples.js';
 
 const router = Router();
 router.use(authenticate, requireAdmin);
@@ -133,5 +134,9 @@ router.get('/notes', async (req, res) => {
 router.get('/db/indexes', async (_req, res) => res.json(await indexReport()));
 
 router.get('/db/explain', async (req, res) => res.json(await explainAll(req.user)));
+
+router.get('/db/samples', (_req, res) => res.json({ data: sampleList() }));
+
+router.get('/db/samples/:key', async (req, res) => res.json(await runSample(req.params.key, req.query)));
 
 export default router;

@@ -26,6 +26,7 @@ export const serverInfo = async () => {
 export const indexReport = async () => {
   const collections = [User, Note, Post];
   const result = [];
+  const collectionStats = [];
   for (const model of collections) {
     const name = model.collection.collectionName;
     const [indexes, count, stats, usage] = await Promise.all([
@@ -35,6 +36,8 @@ export const indexReport = async () => {
       model.collection.aggregate([{ $indexStats: {} }]).toArray().catch(() => []),
     ]);
     const sizes = stats[0]?.storageStats?.indexSizes || {};
+    const st = stats[0]?.storageStats || {};
+    collectionStats.push({ name, documents: count, dataSize: st.size || 0, avgDocSize: Math.round(st.avgObjSize || 0), storageSize: st.storageSize || 0, indexSize: st.totalIndexSize || 0, indexes: indexes.length });
     for (const idx of indexes) {
       const used = usage.find((u) => u.name === idx.name);
       result.push({
@@ -52,7 +55,7 @@ export const indexReport = async () => {
       });
     }
   }
-  return { collections: collections.length, indexes: result.length, server: await serverInfo(), data: result };
+  return { collections: collections.length, indexes: result.length, server: await serverInfo(), collectionStats, data: result };
 };
 
 const walk = (node, acc) => {
