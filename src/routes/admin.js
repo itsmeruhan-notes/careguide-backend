@@ -19,9 +19,12 @@ router.get('/users', async (req, res) => {
   const paging = parsePaging(req.query);
   const q = String(req.query.q || '').trim().toLowerCase().slice(0, 60);
   const filter = q ? { email: { $regex: `^${escapeRegex(q)}` } } : {};
+  if (['active', 'deleted'].includes(req.query.status)) filter.status = req.query.status;
+  if (['user', 'admin'].includes(req.query.role)) filter.role = req.query.role;
+  const filtered = Object.keys(filter).length > 0;
   const [users, total] = await Promise.all([
     User.find(filter, { history: 0, passwordHash: 0 }).sort(q ? { email: 1 } : { _id: -1 }).skip(paging.skip).limit(paging.limit),
-    q ? User.countDocuments(filter) : User.estimatedDocumentCount(),
+    filtered ? User.countDocuments(filter) : User.estimatedDocumentCount(),
   ]);
   res.json(paged(users.map((u) => publicUser(u, true)), total, paging));
 });
@@ -95,13 +98,20 @@ router.get('/users/:id/history', async (req, res) => {
 router.get('/notes', async (req, res) => {
   const paging = parsePaging(req.query);
   const rx = searchRegex(req.query.q);
-  const filter = rx ? { $or: [{ title: rx }, { ownerName: rx }] } : {};
-  const [notes, total] = await Promise.all([
-    Note.find(filter, listProjection).sort({ _id: -1 }).skip(paging.skip).limit(paging.limit).lean(),
-    rx ? Note.countDocuments(filter) : Note.estimatedDocumentCount(),
+  const filter = rx ? { $or: [{ title: rx }, { ownerName: rx }, { content: rx }] } : {};
+  if (['active', 'deleted'].includes(req.query.status)) filter.status = req.query.status;
+  if (req.query.sharing === 'shared') filter['sharedWith.0'] = { $exists: true };
+  if (req.query.sharing === 'private') filter['sharedWith.0'] = { $exists: false };
+  const sorts = { oldest: { _id: 1 }, title: { title: 1, _id: -1 }, owner: { ownerName: 1, _id: -1 } };
+  const filtered = Object.keys(filter).length > 0;
+  const [notes, total, deleted, all] = await Promise.all([
+    Note.find(filter, listProjection).sort(sorts[req.query.sort] || { _id: -1 }).skip(paging.skip).limit(paging.limit).lean(),
+    filtered ? Note.countDocuments(filter) : Note.estimatedDocumentCount(),
+    Note.countDocuments({ status: 'deleted' }),
+    Note.estimatedDocumentCount(),
   ]);
-  res.json(
-    paged(
+  res.json({
+    ...paged(
       notes.map((n) => ({
         id: String(n._id),
         title: n.title,
@@ -116,7 +126,8 @@ router.get('/notes', async (req, res) => {
       total,
       paging,
     ),
-  );
+    counts: { all, active: all - deleted, deleted },
+  });
 });
 
 router.get('/db/indexes', async (_req, res) => res.json(await indexReport()));
