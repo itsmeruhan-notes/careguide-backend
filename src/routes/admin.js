@@ -5,7 +5,7 @@ import { User } from '../models/User.js';
 import { Note } from '../models/Note.js';
 import { Post } from '../models/Post.js';
 import { authenticate, requireAdmin } from '../middleware/auth.js';
-import { AppError, badRequest, conflict, notFound, paged, parsePaging, toObjectId } from '../utils/http.js';
+import { AppError, badRequest, conflict, escapeRegex, notFound, paged, parsePaging, searchRegex, toObjectId } from '../utils/http.js';
 import { parse, schemas, toEmail } from '../utils/validation.js';
 import { applyChanges, createdAudit, historyPage } from '../utils/history.js';
 import { listProjection } from './notes.js';
@@ -17,9 +17,11 @@ router.use(authenticate, requireAdmin);
 
 router.get('/users', async (req, res) => {
   const paging = parsePaging(req.query);
+  const q = String(req.query.q || '').trim().toLowerCase().slice(0, 60);
+  const filter = q ? { email: { $regex: `^${escapeRegex(q)}` } } : {};
   const [users, total] = await Promise.all([
-    User.find({}, { history: 0, passwordHash: 0 }).sort({ _id: -1 }).skip(paging.skip).limit(paging.limit),
-    User.estimatedDocumentCount(),
+    User.find(filter, { history: 0, passwordHash: 0 }).sort(q ? { email: 1 } : { _id: -1 }).skip(paging.skip).limit(paging.limit),
+    q ? User.countDocuments(filter) : User.estimatedDocumentCount(),
   ]);
   res.json(paged(users.map((u) => publicUser(u, true)), total, paging));
 });
@@ -92,9 +94,11 @@ router.get('/users/:id/history', async (req, res) => {
 
 router.get('/notes', async (req, res) => {
   const paging = parsePaging(req.query);
+  const rx = searchRegex(req.query.q);
+  const filter = rx ? { $or: [{ title: rx }, { ownerName: rx }] } : {};
   const [notes, total] = await Promise.all([
-    Note.find({}, listProjection).sort({ _id: -1 }).skip(paging.skip).limit(paging.limit).lean(),
-    Note.estimatedDocumentCount(),
+    Note.find(filter, listProjection).sort({ _id: -1 }).skip(paging.skip).limit(paging.limit).lean(),
+    rx ? Note.countDocuments(filter) : Note.estimatedDocumentCount(),
   ]);
   res.json(
     paged(

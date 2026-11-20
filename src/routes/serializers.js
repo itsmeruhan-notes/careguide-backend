@@ -42,6 +42,7 @@ export const noteView = (note, access) => ({
     sharedAt: s.sharedAt,
   })),
   access,
+  revision: (note.history || []).length,
   status: note.status,
   createdAt: note.createdAt,
   createdByName: note.createdByName,
@@ -53,7 +54,8 @@ export const postView = (post) => ({
   id: String(post._id),
   title: post.title,
   body: post.body,
-  author: { id: String(post.author), name: post.authorName },
+  author: { id: String(post.author), name: post.authorName, role: post.authorRole },
+  tags: post.tags || [],
   createdAt: post.createdAt,
   updatedAt: post.updatedAt,
 });

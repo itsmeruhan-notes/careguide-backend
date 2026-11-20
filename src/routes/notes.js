@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { Note } from '../models/Note.js';
 import { User } from '../models/User.js';
 import { authenticate } from '../middleware/auth.js';
-import { badRequest, forbidden, notFound, paged, parsePaging, toObjectId } from '../utils/http.js';
+import { badRequest, forbidden, notFound, paged, parsePaging, searchRegex, toObjectId } from '../utils/http.js';
 import { parse, schemas } from '../utils/validation.js';
 import { applyChanges, createdAudit, historyPage } from '../utils/history.js';
 import { accessFor, noteView } from './serializers.js';
@@ -49,8 +49,10 @@ router.get('/', async (req, res) => {
   const scope = req.query.scope === 'shared' ? 'shared' : 'mine';
   const filter =
     scope === 'shared' ? { 'sharedWith.userId': req.user._id, status: 'active' } : { owner: req.user._id, status: 'active' };
+  const rx = searchRegex(req.query.q);
+  if (rx) filter.$or = [{ title: rx }, { content: rx }];
   const [notes, total] = await Promise.all([
-    Note.find(filter, listProjection).sort({ _id: -1 }).skip(paging.skip).limit(paging.limit).lean(),
+    Note.find(filter, listProjection).sort({ _id: req.query.sort === 'oldest' ? 1 : -1 }).skip(paging.skip).limit(paging.limit).lean(),
     Note.countDocuments(filter),
   ]);
   res.json(paged(notes.map((n) => listItem(n, req.user)), total, paging));

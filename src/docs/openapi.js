@@ -2,6 +2,7 @@ const page = [
   { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
   { name: 'limit', in: 'query', schema: { type: 'integer', default: 10, maximum: 50 } },
 ];
+const search = [{ name: 'q', in: 'query', schema: { type: 'string' }, description: 'search text' }];
 const id = (name = 'id') => ({ name, in: 'path', required: true, schema: { type: 'string' } });
 const body = (properties, required = []) => ({
   required: true,
@@ -29,7 +30,7 @@ export const openapi = {
     '/users/me/password': { patch: op('Me', 'Change password', { requestBody: body({ currentPassword: s, newPassword: s }, ['currentPassword', 'newPassword']) }) },
     '/users/me/stats': { get: op('Me', 'My counts') },
     '/notes': {
-      get: op('Notes', 'List my notes or notes shared with me', { parameters: [{ name: 'scope', in: 'query', schema: { type: 'string', enum: ['mine', 'shared'] } }, ...page] }),
+      get: op('Notes', 'List my notes or notes shared with me', { parameters: [...search, { name: 'scope', in: 'query', schema: { type: 'string', enum: ['mine', 'shared'] } }, { name: 'sort', in: 'query', schema: { type: 'string', enum: ['newest', 'oldest'] } }, ...page] }),
       post: op('Notes', 'Create note', { requestBody: body({ title: s, content: s }, ['title']) }),
     },
     '/notes/{id}': {
@@ -41,8 +42,8 @@ export const openapi = {
     '/notes/{id}/shares': { put: op('Sharing', 'Share or change access', { parameters: [id()], requestBody: body({ email: s, access: { type: 'string', enum: ['read', 'write'] } }, ['email', 'access']) }) },
     '/notes/{id}/shares/{userId}': { delete: op('Sharing', 'Revoke access', { parameters: [id(), id('userId')] }) },
     '/posts': {
-      get: op('Posts', 'Posts feed', { parameters: page }),
-      post: op('Posts', 'Create post', { requestBody: body({ title: s, body: s }, ['title', 'body']) }),
+      get: op('Posts', 'Posts feed (q searches title, body, tags, author)', { parameters: [...search, ...page] }),
+      post: op('Posts', 'Create post', { requestBody: body({ title: s, body: s, tags: { type: 'array', items: s } }, ['title', 'body']) }),
     },
     '/posts/{id}': { delete: op('Posts', 'Delete post (author or admin)', { parameters: [id()] }) },
     '/users/grouped-by-interests': {
@@ -50,10 +51,11 @@ export const openapi = {
         parameters: [{ name: 'interest', in: 'query', schema: s, description: 'comma separated filter' }, { name: 'sort', in: 'query', schema: { type: 'string', enum: ['count', 'name'] } }, ...page],
       }),
     },
+    '/users': { get: op('Users', 'Find users by nickname prefix (uses email index)', { parameters: [...search, ...page] }) },
     '/users/{id}': { get: op('Users', 'Public profile', { parameters: [id()] }) },
     '/users/{id}/posts': { get: op('Aggregations', 'Scenario 2: user + posts via $lookup', { parameters: [id(), ...page] }) },
     '/admin/users': {
-      get: op('Admin', 'List all users', { parameters: page }),
+      get: op('Admin', 'List all users (q = nickname prefix, uses email index)', { parameters: [...search, ...page] }),
       post: op('Admin', 'Create user', { requestBody: body({ name: s, password: s, role: { type: 'string', enum: ['user', 'admin'] }, interests: { type: 'array', items: s } }, ['name', 'password']) }),
     },
     '/admin/users/{id}': {
@@ -61,7 +63,7 @@ export const openapi = {
       delete: op('Admin', 'Soft delete user and their notes/posts', { parameters: [id()] }),
     },
     '/admin/users/{id}/history': { get: op('Admin', 'User change history', { parameters: [id(), ...page] }) },
-    '/admin/notes': { get: op('Admin', "Everyone's notes", { parameters: page }) },
+    '/admin/notes': { get: op('Admin', "Everyone's notes (q searches title and owner)", { parameters: [...search, ...page] }) },
     '/admin/db/indexes': { get: op('Admin', 'Index list per collection') },
     '/admin/db/explain': { get: op('Admin', 'explain() summary for every main query') },
   },

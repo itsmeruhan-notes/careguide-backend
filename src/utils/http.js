@@ -25,6 +25,13 @@ export const parsePaging = (query) => {
   return { page, limit, skip: (page - 1) * limit };
 };
 
+export const escapeRegex = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+export const searchRegex = (q) => {
+  const text = String(q || '').trim().slice(0, 100);
+  return text ? new RegExp(escapeRegex(text), 'i') : null;
+};
+
 export const paged = (data, total, { page, limit }) => ({
   data,
   page,

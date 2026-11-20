@@ -5,7 +5,7 @@ import { User } from '../models/User.js';
 import { Note } from '../models/Note.js';
 import { Post } from '../models/Post.js';
 import { authenticate } from '../middleware/auth.js';
-import { AppError, notFound, paged, parsePaging, toObjectId } from '../utils/http.js';
+import { AppError, escapeRegex, notFound, paged, parsePaging, toObjectId } from '../utils/http.js';
 import { parse, schemas } from '../utils/validation.js';
 import { applyChanges } from '../utils/history.js';
 import { groupByInterests, userPostsPipeline } from '../queries.js';
@@ -41,6 +41,17 @@ router.get('/me/stats', async (req, res) => {
     Post.countDocuments({ author: req.user._id, status: 'active' }),
   ]);
   res.json({ notes, sharedWithMe, sharedByMe, posts });
+});
+
+router.get('/', async (req, res) => {
+  const paging = parsePaging(req.query);
+  const q = String(req.query.q || '').trim().toLowerCase().replace(/@.*$/, '').slice(0, 30);
+  const filter = { status: 'active', ...(q ? { email: { $regex: `^${escapeRegex(q)}` } } : {}) };
+  const [users, total] = await Promise.all([
+    User.find(filter, { name: 1, email: 1, role: 1, interests: 1 }).sort(q ? { email: 1 } : { _id: -1 }).skip(paging.skip).limit(paging.limit),
+    User.countDocuments(filter),
+  ]);
+  res.json(paged(users.map((u) => ({ id: String(u._id), name: u.name, email: u.email, role: u.role, interests: u.interests })), total, paging));
 });
 
 router.get('/grouped-by-interests', async (req, res) => {
