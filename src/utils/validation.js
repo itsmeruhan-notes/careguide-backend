@@ -44,6 +44,11 @@ export const schemas = {
   postCreate: z.object({
     title: z.string().trim().min(1, 'Title is required').max(120),
     body: z.string().trim().min(1, 'Body is required').max(5000),
+    tags: z
+      .array(z.string().trim().toLowerCase().transform((v) => v.replace(/^#/, '')).pipe(z.string().regex(/^[a-z0-9-]{2,30}$/, 'Tags: 2–30 letters, numbers or -')))
+      .max(5, 'Up to 5 tags')
+      .transform((l) => [...new Set(l)])
+      .optional(),
   }),
   adminCreateUser: z.object({ name, password, role: role.default('user'), interests: interests.optional(), bio: z.string().trim().max(200).optional() }),
   adminUpdateUser: z.object({

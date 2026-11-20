@@ -229,6 +229,27 @@ test('profile update and password change', async () => {
   assert.equal(typeof stats.body.notes, 'number');
 });
 
+test('server-side search on every list', async () => {
+  const mine = await ctx.as('karim').get('/notes?q=CHESS');
+  assert.deepEqual(mine.body.data.map((n) => n.title), ['Chess openings']);
+  const shared = await ctx.as('user').get('/notes?scope=shared&q=openings');
+  assert.equal(shared.body.total, 1);
+  const posts = await ctx.as('user').get('/posts?q=indexing');
+  assert.ok(posts.body.data.length >= 2);
+  assert.ok(posts.body.data.every((p) => Array.isArray(p.tags)));
+  const tricky = await ctx.as('user').get('/posts?q=' + encodeURIComponent('(.*'));
+  assert.equal(tricky.status, 200);
+  const users = await ctx.as('user').get('/users?q=ka');
+  assert.deepEqual(users.body.data.map((u) => u.name), ['karim']);
+  const adminUsers = await ctx.as('admin').get('/admin/users?q=s');
+  assert.ok(adminUsers.body.data.every((u) => u.name.startsWith('s')));
+  const adminNotes = await ctx.as('admin').get('/admin/notes?q=mim');
+  assert.ok(adminNotes.body.data.length >= 1);
+  const tagged = await ctx.as('sara').post('/posts', { title: 'Tagged', body: 'x', tags: ['#Design', 'ui'] });
+  assert.deepEqual(tagged.body.post.tags, ['design', 'ui']);
+  assert.equal(tagged.body.post.author.role, 'user');
+});
+
 test('only the planned indexes exist', async () => {
   const names = async (model) => (await model.collection.indexes()).map((i) => i.name).sort();
   assert.deepEqual(await names(User), ['_id_', 'email_1', 'interests_1']);

@@ -7,6 +7,8 @@ const postSchema = new mongoose.Schema(
     authorName: { type: String, default: '' },
     title: { type: String, default: '' },
     body: { type: String, default: '' },
+    tags: { type: [String], default: [] },
+    authorRole: { type: String, default: 'user' },
     ...auditFields,
   },
   schemaOptions,

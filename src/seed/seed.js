@@ -31,13 +31,13 @@ const NOTES = [
 ];
 
 const POSTS = [
-  { author: 'ruhan', title: 'Why I only made five indexes', body: 'Every index costs writes and memory. I mapped each list and lookup to one index and let _id handle the rest.' },
-  { author: 'ruhan', title: 'Soft delete with history', body: 'Nothing is hard-deleted. Each document keeps its own history array with the old values.' },
-  { author: 'karim', title: 'Learning MongoDB indexes', body: 'Compound indexes follow the ESR rule: equality, sort, range. Put equality fields first.' },
-  { author: 'karim', title: 'A chess puzzle a day', body: 'Ten minutes of tactics every morning improved my rating more than long games.' },
-  { author: 'sara', title: 'Reading list for designers', body: 'Refactoring UI, The Design of Everyday Things, and Don\'t Make Me Think.' },
-  { author: 'mim', title: 'Best light for photos', body: 'Golden hour is real. Shoot an hour after sunrise or before sunset.' },
-  { author: 'demo', title: 'Hello from the demo account', body: 'Log in as demo / User1234 to try sharing.' },
+  { author: 'ruhan', title: 'Why I only made five indexes', tags: ['mongodb', 'indexing'], body: 'Every index costs writes and memory. I mapped each list and lookup to one index and let _id handle the rest.' },
+  { author: 'ruhan', title: 'Soft delete with history', tags: ['mongodb', 'audit'], body: 'Nothing is hard-deleted. Each document keeps its own history array with the old values.' },
+  { author: 'karim', title: 'Learning MongoDB indexes', tags: ['mongodb', 'indexing'], body: 'Compound indexes follow the ESR rule: equality, sort, range. Put equality fields first.' },
+  { author: 'karim', title: 'A chess puzzle a day', tags: ['chess'], body: 'Ten minutes of tactics every morning improved my rating more than long games.' },
+  { author: 'sara', title: 'Reading list for designers', tags: ['design', 'reading'], body: 'Refactoring UI, The Design of Everyday Things, and Don\'t Make Me Think.' },
+  { author: 'mim', title: 'Best light for photos', tags: ['photography'], body: 'Golden hour is real. Shoot an hour after sunrise or before sunset.' },
+  { author: 'demo', title: 'Hello from the demo account', tags: ['welcome'], body: 'Log in as demo / User1234 to try sharing.' },
 ];
 
 export const seed = async () => {
@@ -69,7 +69,7 @@ export const seed = async () => {
 
   for (const p of POSTS) {
     const author = users[p.author];
-    await Post.create({ title: p.title, body: p.body, author: author._id, authorName: author.name, ...createdAudit(author) });
+    await Post.create({ title: p.title, body: p.body, tags: p.tags, author: author._id, authorName: author.name, authorRole: author.role, ...createdAudit(author) });
   }
   return { users: PEOPLE.length, notes: NOTES.length, posts: POSTS.length };
 };

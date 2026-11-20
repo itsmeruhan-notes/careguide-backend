@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { Post } from '../models/Post.js';
 import { authenticate } from '../middleware/auth.js';
-import { forbidden, notFound, paged, parsePaging, toObjectId } from '../utils/http.js';
+import { forbidden, notFound, paged, parsePaging, searchRegex, toObjectId } from '../utils/http.js';
 import { parse, schemas } from '../utils/validation.js';
 import { applyChanges, createdAudit } from '../utils/history.js';
 import { postView } from './serializers.js';
@@ -12,6 +12,8 @@ router.use(authenticate);
 router.get('/', async (req, res) => {
   const paging = parsePaging(req.query);
   const filter = { status: 'active' };
+  const rx = searchRegex(req.query.q);
+  if (rx) filter.$or = [{ title: rx }, { body: rx }, { tags: rx }, { authorName: rx }];
   const [posts, total] = await Promise.all([
     Post.find(filter, { history: 0 }).sort({ _id: -1 }).skip(paging.skip).limit(paging.limit).lean(),
     Post.countDocuments(filter),
@@ -21,7 +23,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   const input = parse(schemas.postCreate, req.body);
-  const post = await Post.create({ ...input, author: req.user._id, authorName: req.user.name, ...createdAudit(req.user) });
+  const post = await Post.create({ ...input, tags: input.tags || [], author: req.user._id, authorName: req.user.name, authorRole: req.user.role, ...createdAudit(req.user) });
   res.status(201).json({ post: postView(post) });
 });
 
