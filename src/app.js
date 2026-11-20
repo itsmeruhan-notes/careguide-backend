@@ -10,17 +10,27 @@ import adminRoutes from './routes/admin.js';
 import { openapi } from './docs/openapi.js';
 import { config } from './config.js';
 import { errorHandler, notFoundHandler } from './middleware/error.js';
+import { limiter, rejectOperatorKeys, requireJson } from './middleware/security.js';
 
 export const createApp = () => {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 'loopback, linklocal, uniquelocal');
+  app.set('query parser', 'simple');
+  app.set('etag', false);
   if (config.enableDocs) {
     app.use('/docs', helmet({ contentSecurityPolicy: false }), swaggerUi.serve, swaggerUi.setup(openapi, { customSiteTitle: "Ruhan's Notes API" }));
     app.get('/openapi.json', (_req, res) => res.json(openapi));
   }
-  app.use(helmet());
-  app.use(express.json({ limit: '100kb' }));
+  app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-origin' } }));
+  app.use(limiter({ windowMs: 5 * 60 * 1000, limit: config.apiRateLimit, message: 'Too many requests. Slow down.' }));
+  app.use(requireJson);
+  app.use(express.json({ limit: '100kb', strict: true }));
+  app.use(rejectOperatorKeys);
+  app.use((_req, res, next) => {
+    res.set('Cache-Control', 'no-store');
+    next();
+  });
 
   app.get('/health', async (_req, res) => {
     const db = mongoose.connection.readyState === 1 ? 'up' : 'down';

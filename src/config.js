@@ -7,5 +7,7 @@ export const config = {
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12),
   seedOnEmpty: process.env.SEED_ON_EMPTY === 'true',
   enableDocs: process.env.ENABLE_DOCS ? process.env.ENABLE_DOCS === 'true' : process.env.NODE_ENV !== 'production',
+  allowRegistration: process.env.ALLOW_REGISTRATION ? process.env.ALLOW_REGISTRATION === 'true' : process.env.NODE_ENV !== 'production',
+  apiRateLimit: Number(process.env.API_RATE_LIMIT || 600),
   loginRateLimit: Number(process.env.LOGIN_RATE_LIMIT || 10),
 };

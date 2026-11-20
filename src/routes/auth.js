@@ -1,28 +1,29 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import rateLimit from 'express-rate-limit';
 import { config } from '../config.js';
 import { User } from '../models/User.js';
 import { authenticate, signToken } from '../middleware/auth.js';
-import { AppError, conflict } from '../utils/http.js';
+import { AppError, conflict, forbidden } from '../utils/http.js';
+import { limiter } from '../middleware/security.js';
 import { parse, schemas, toEmail } from '../utils/validation.js';
 import { createdAudit } from '../utils/history.js';
 import { publicUser } from './serializers.js';
 
 const router = Router();
 
-const loginLimiter = rateLimit({
-  windowMs: 60 * 1000,
-  limit: config.loginRateLimit,
-  standardHeaders: 'draft-8',
-  legacyHeaders: false,
-  keyGenerator: (req) => req.headers['cf-connecting-ip'] || req.ip,
-  validate: false,
-  handler: (_req, res) =>
-    res.status(429).json({ error: { code: 'TOO_MANY_REQUESTS', message: 'Too many attempts. Try again in a minute.', fields: {} } }),
+const loginLimiter = limiter({ windowMs: 60 * 1000, limit: config.loginRateLimit, message: 'Too many attempts. Try again in a minute.' });
+const failedLoginLimiter = limiter({
+  windowMs: 15 * 60 * 1000,
+  limit: Math.max(5, Math.ceil(config.loginRateLimit / 2)),
+  skipSuccessfulRequests: true,
+  key: (req) => `email:${String(req.body?.email || '').trim().toLowerCase().slice(0, 120)}`,
+  message: 'Too many failed attempts for this account. Try again in 15 minutes.',
 });
 
+router.get('/config', (_req, res) => res.json({ registration: config.allowRegistration }));
+
 router.post('/register', loginLimiter, async (req, res) => {
+  if (!config.allowRegistration) throw forbidden('Registration is closed. Ask an admin for an account.');
   const input = parse(schemas.register, req.body);
   const email = toEmail(input.name);
   if (await User.exists({ email })) throw conflict('This nickname is already taken', { name: 'This nickname is already taken' });
@@ -44,7 +45,7 @@ router.post('/register', loginLimiter, async (req, res) => {
   res.status(201).json({ token: signToken(user), user: publicUser(user, true) });
 });
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, failedLoginLimiter, async (req, res) => {
   const input = parse(schemas.login, req.body);
   const user = await User.findOne({ email: input.email }, { history: 0 });
   const ok = user && (await bcrypt.compare(input.password, user.passwordHash));

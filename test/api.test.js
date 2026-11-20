@@ -262,6 +262,26 @@ test('server-side search on every list', async () => {
   assert.equal(tagged.body.post.author.role, 'user');
 });
 
+test('security: operator keys, jwt alg, json only, registration flag', async () => {
+  const injected = await ctx.api.post('/auth/login').send({ email: { $ne: '' }, password: { $ne: '' } });
+  assert.equal(injected.status, 400);
+  const nested = await ctx.as('karim').post('/notes', { title: 'x', content: 'y', $where: '1' });
+  assert.equal(nested.status, 400);
+  const queryOp = await ctx.as('karim').get('/notes?q[$ne]=1');
+  assert.equal(queryOp.status, 200);
+  const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+  const body = Buffer.from(JSON.stringify({ sub: '64b000000000000000000000', role: 'admin' })).toString('base64url');
+  const forged = await ctx.api.get('/admin/users').set('Authorization', `Bearer ${header}.${body}.`);
+  assert.equal(forged.status, 401);
+  const form = await ctx.api.post('/auth/login').type('form').send('email=a&password=b');
+  assert.equal(form.status, 415);
+  const cfg = await ctx.api.get('/auth/config');
+  assert.equal(cfg.body.registration, true);
+  const me = await ctx.as('karim').get('/auth/me');
+  assert.equal(me.headers['cache-control'], 'no-store');
+  assert.equal(me.body.user.passwordHash, undefined);
+});
+
 test('only the planned indexes exist', async () => {
   const names = async (model) => (await model.collection.indexes()).map((i) => i.name).sort();
   assert.deepEqual(await names(User), ['_id_', 'email_1', 'interests_1']);

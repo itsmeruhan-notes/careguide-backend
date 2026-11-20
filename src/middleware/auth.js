@@ -7,7 +7,7 @@ import { AppError, forbidden } from '../utils/http.js';
 const unauthorized = (message = 'Please sign in') => new AppError(401, 'UNAUTHORIZED', message);
 
 export const signToken = (user) =>
-  jwt.sign({ sub: String(user._id), role: user.role, name: user.name }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+  jwt.sign({ sub: String(user._id), role: user.role, name: user.name }, config.jwtSecret, { expiresIn: config.jwtExpiresIn, algorithm: 'HS256' });
 
 export const authenticate = async (req, _res, next) => {
   const header = req.headers.authorization || '';
@@ -15,7 +15,7 @@ export const authenticate = async (req, _res, next) => {
   if (!token) return next(unauthorized());
   let payload;
   try {
-    payload = jwt.verify(token, config.jwtSecret);
+    payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] });
   } catch {
     return next(unauthorized('Your session has expired. Please sign in again.'));
   }
