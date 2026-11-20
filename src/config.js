@@ -6,5 +6,6 @@ export const config = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
   bcryptRounds: Number(process.env.BCRYPT_ROUNDS || 12),
   seedOnEmpty: process.env.SEED_ON_EMPTY === 'true',
+  enableDocs: process.env.ENABLE_DOCS ? process.env.ENABLE_DOCS === 'true' : process.env.NODE_ENV !== 'production',
   loginRateLimit: Number(process.env.LOGIN_RATE_LIMIT || 10),
 };

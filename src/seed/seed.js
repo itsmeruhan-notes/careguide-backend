@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { config } from '../config.js';
 import { User } from '../models/User.js';
@@ -6,17 +7,19 @@ import { Post } from '../models/Post.js';
 import { createdAudit, applyChanges } from '../utils/history.js';
 import { toEmail } from '../utils/validation.js';
 
+const secret = (key) => process.env[`SEED_PASSWORD_${key.toUpperCase()}`] || `${randomBytes(12).toString('base64url')}9a`;
+
 export const DEMO = {
-  admin: { name: 'admin', password: 'Admin1234' },
-  user: { name: 'demo', password: 'User1234' },
+  admin: { name: 'admin', password: secret('admin') },
+  user: { name: 'demo', password: secret('demo') },
 };
 
 const PEOPLE = [
   { key: 'ruhan', name: DEMO.admin.name, password: DEMO.admin.password, role: 'admin', isDemo: 'Y', bio: 'Builder of this app. Admin.', interests: ['chess', 'mongodb', 'reading'] },
   { key: 'demo', name: DEMO.user.name, password: DEMO.user.password, role: 'user', isDemo: 'Y', bio: 'Try the app with me.', interests: ['reading', 'travel', 'music'] },
-  { key: 'karim', name: 'karim', password: 'Karim1234', role: 'user', bio: 'Backend dev, chess lover', interests: ['chess', 'mongodb', 'coding'] },
-  { key: 'sara', name: 'sara', password: 'Sara1234', role: 'user', bio: 'Designer who reads a lot', interests: ['reading', 'design', 'music'] },
-  { key: 'mim', name: 'mim', password: 'Mim12345', role: 'user', bio: 'Traveller and photographer', interests: ['travel', 'photography', 'chess'] },
+  { key: 'karim', name: 'karim', password: secret('karim'), role: 'user', bio: 'Backend dev, chess lover', interests: ['chess', 'mongodb', 'coding'] },
+  { key: 'sara', name: 'sara', password: secret('sara'), role: 'user', bio: 'Designer who reads a lot', interests: ['reading', 'design', 'music'] },
+  { key: 'mim', name: 'mim', password: secret('mim'), role: 'user', bio: 'Traveller and photographer', interests: ['travel', 'photography', 'chess'] },
 ];
 
 const NOTES = [
