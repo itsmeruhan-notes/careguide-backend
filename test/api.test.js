@@ -40,7 +40,9 @@ test('register, login, me, validation and duplicate email', async () => {
   const dup = await ctx.api.post('/auth/register').send({ name: 'newperson', password: 'Secret123' });
   assert.equal(dup.status, 409);
 
-  const wrong = await ctx.api.post('/auth/login').send({ email: 'newperson', password: 'Wrong1234' });
+  const wrong = await ctx.api.post('/auth/login').send({ email: 'newperson@ruhan.lol', password: 'Wrong1234' });
+  const bare = await ctx.api.post('/auth/login').send({ email: 'newperson', password: 'Secret123' });
+  assert.equal(bare.status, 400);
   assert.equal(wrong.status, 401);
 
   const me = await ctx.api.get('/auth/me').set('Authorization', `Bearer ${ok.body.token}`);
@@ -159,7 +161,7 @@ test('admin: users management, all notes, forbidden for users', async () => {
   assert.ok(tLogin);
   const del = await ctx.as('admin').delete(`/admin/users/${uid}`);
   assert.equal(del.status, 204);
-  const blocked = await ctx.api.post('/auth/login').send({ email: 'tanvir', password: 'Tanvir123' });
+  const blocked = await ctx.api.post('/auth/login').send({ email: 'tanvir@ruhan.lol', password: 'Tanvir123' });
   assert.equal(blocked.status, 403);
   const oldToken = await ctx.api.get('/auth/me').set('Authorization', `Bearer ${tLogin}`);
   assert.equal(oldToken.status, 401);

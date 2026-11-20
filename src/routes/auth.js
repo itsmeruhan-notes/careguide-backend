@@ -48,7 +48,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   const input = parse(schemas.login, req.body);
   const user = await User.findOne({ email: input.email }, { history: 0 });
   const ok = user && (await bcrypt.compare(input.password, user.passwordHash));
-  if (!ok) throw new AppError(401, 'INVALID_CREDENTIALS', 'Nickname or password is incorrect.');
+  if (!ok) throw new AppError(401, 'INVALID_CREDENTIALS', 'Email or password is incorrect.');
   if (user.status !== 'active') throw new AppError(403, 'ACCOUNT_DISABLED', 'This account is disabled. Contact an admin.');
   res.json({ token: signToken(user), user: publicUser(user, true) });
 });

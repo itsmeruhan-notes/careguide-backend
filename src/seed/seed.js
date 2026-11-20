@@ -7,7 +7,7 @@ import { createdAudit, applyChanges } from '../utils/history.js';
 import { toEmail } from '../utils/validation.js';
 
 export const DEMO = {
-  admin: { name: 'ruhan', password: 'Admin1234' },
+  admin: { name: 'admin', password: 'Admin1234' },
   user: { name: 'demo', password: 'User1234' },
 };
 
@@ -37,7 +37,7 @@ const POSTS = [
   { author: 'karim', title: 'A chess puzzle a day', tags: ['chess'], body: 'Ten minutes of tactics every morning improved my rating more than long games.' },
   { author: 'sara', title: 'Reading list for designers', tags: ['design', 'reading'], body: 'Refactoring UI, The Design of Everyday Things, and Don\'t Make Me Think.' },
   { author: 'mim', title: 'Best light for photos', tags: ['photography'], body: 'Golden hour is real. Shoot an hour after sunrise or before sunset.' },
-  { author: 'demo', title: 'Hello from the demo account', tags: ['welcome'], body: 'Log in as demo / User1234 to try sharing.' },
+  { author: 'demo', title: 'Hello from the demo account', tags: ['welcome'], body: 'Log in as demo@ruhan.lol / User1234 to try sharing.' },
 ];
 
 export const seed = async () => {

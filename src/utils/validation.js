@@ -8,6 +8,13 @@ const name = z
   .trim()
   .toLowerCase()
   .regex(/^[a-z0-9._-]{3,30}$/, 'Nickname must be 3–30 characters: letters, numbers, . _ -');
+const fullEmail = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(1, 'Email is required')
+  .max(120)
+  .refine((v) => v.endsWith(`@${config.emailDomain}`) && /^[a-z0-9._-]{3,30}@/.test(v) && v.split('@').length === 2, `Use your full email, e.g. karim@${config.emailDomain}`);
 const loginId = z
   .string()
   .trim()
@@ -30,7 +37,7 @@ const status = z.enum(['active', 'deleted']);
 
 export const schemas = {
   register: z.object({ name, password, interests: interests.optional() }),
-  login: z.object({ email: loginId, password: z.string().min(1, 'Password is required') }),
+  login: z.object({ email: fullEmail, password: z.string().min(1, 'Password is required') }),
   updateMe: z.object({ bio: z.string().trim().max(200).optional(), interests: interests.optional() }),
   changePassword: z.object({ currentPassword: z.string().min(1, 'Current password is required'), newPassword: password }),
   noteCreate: z.object({

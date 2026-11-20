@@ -12,7 +12,7 @@ export const setup = async () => {
   const app = createApp();
   const api = request(app);
   const login = async (name, password) => {
-    const res = await api.post('/auth/login').send({ email: name, password });
+    const res = await api.post('/auth/login').send({ email: name.includes('@') ? name : `${name}@ruhan.lol`, password });
     return res.body.token;
   };
   const tokens = {
