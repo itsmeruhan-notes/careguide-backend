@@ -23,8 +23,8 @@ export const openapi = {
   security: [{ bearer: [] }],
   paths: {
     '/health': { get: op('System', 'API and database health', { security: [] }) },
-    '/auth/register': { post: op('Auth', 'Register (role user)', { security: [], requestBody: body({ name: { type: 'string', description: 'nickname, becomes nickname@ruhan.lol' }, password: s, interests: { type: 'array', items: s } }, ['name', 'password']) }) },
-    '/auth/login': { post: op('Auth', 'Login, returns JWT', { security: [], requestBody: body({ email: { type: 'string', description: 'nickname or nickname@ruhan.lol' }, password: s }, ['email', 'password']) }) },
+    '/auth/register': { post: op('Auth', 'Register (role user)', { security: [], requestBody: body({ name: { type: 'string', description: 'nickname; the email is generated from it' }, password: s, interests: { type: 'array', items: s } }, ['name', 'password']) }) },
+    '/auth/login': { post: op('Auth', 'Login, returns JWT', { security: [], requestBody: body({ email: { type: 'string', description: 'full email address' }, password: s }, ['email', 'password']) }) },
     '/auth/me': { get: op('Auth', 'Current user') },
     '/users/me': { patch: op('Me', 'Update name, bio, interests', { requestBody: body({ bio: s, interests: { type: 'array', items: s } }) }) },
     '/users/me/password': { patch: op('Me', 'Change password', { requestBody: body({ currentPassword: s, newPassword: s }, ['currentPassword', 'newPassword']) }) },

@@ -14,7 +14,7 @@ const fullEmail = z
   .toLowerCase()
   .min(1, 'Email is required')
   .max(120)
-  .refine((v) => v.endsWith(`@${config.emailDomain}`) && /^[a-z0-9._-]{3,30}@/.test(v) && v.split('@').length === 2, `Use your full email, e.g. karim@${config.emailDomain}`);
+  .refine((v) => v.endsWith(`@${config.emailDomain}`) && /^[a-z0-9._-]{3,30}@/.test(v) && v.split('@').length === 2, 'Enter your full email address');
 const loginId = z
   .string()
   .trim()
