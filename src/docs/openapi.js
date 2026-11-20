@@ -48,14 +48,14 @@ export const openapi = {
     '/posts/{id}': { delete: op('Posts', 'Delete post (author or admin)', { parameters: [id()] }) },
     '/users/grouped-by-interests': {
       get: op('Aggregations', 'Scenario 1: users grouped by interests (one aggregate call)', {
-        parameters: [{ name: 'interest', in: 'query', schema: s, description: 'comma separated filter' }, { name: 'sort', in: 'query', schema: { type: 'string', enum: ['count', 'name'] } }, ...page],
+        parameters: [{ name: 'interest', in: 'query', schema: s, description: 'comma separated filter' }, { name: 'sort', in: 'query', schema: { type: 'string', enum: ['count', 'name'] } }, { name: 'q', in: 'query', schema: s, description: 'search interest names' }, { name: 'minMembers', in: 'query', schema: { type: 'integer' } }, ...page],
       }),
     },
     '/users': { get: op('Users', 'Find users by nickname prefix (uses email index)', { parameters: [...search, ...page] }) },
     '/users/{id}': { get: op('Users', 'Public profile', { parameters: [id()] }) },
     '/users/{id}/posts': { get: op('Aggregations', 'Scenario 2: user + posts via $lookup', { parameters: [id(), ...page] }) },
     '/admin/users': {
-      get: op('Admin', 'List all users (q = nickname prefix, uses email index)', { parameters: [...search, ...page] }),
+      get: op('Admin', 'List all users (q = nickname prefix, uses email index)', { parameters: [...search, { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'deleted'] } }, { name: 'role', in: 'query', schema: { type: 'string', enum: ['user', 'admin'] } }, ...page] }),
       post: op('Admin', 'Create user', { requestBody: body({ name: s, password: s, role: { type: 'string', enum: ['user', 'admin'] }, interests: { type: 'array', items: s } }, ['name', 'password']) }),
     },
     '/admin/users/{id}': {
@@ -63,7 +63,7 @@ export const openapi = {
       delete: op('Admin', 'Soft delete user and their notes/posts', { parameters: [id()] }),
     },
     '/admin/users/{id}/history': { get: op('Admin', 'User change history', { parameters: [id(), ...page] }) },
-    '/admin/notes': { get: op('Admin', "Everyone's notes (q searches title and owner)", { parameters: [...search, ...page] }) },
+    '/admin/notes': { get: op('Admin', "Everyone's notes with counts (q searches title, owner, content)", { parameters: [...search, { name: 'status', in: 'query', schema: { type: 'string', enum: ['active', 'deleted'] } }, { name: 'sharing', in: 'query', schema: { type: 'string', enum: ['shared', 'private'] } }, { name: 'sort', in: 'query', schema: { type: 'string', enum: ['newest', 'oldest', 'title', 'owner'] } }, ...page] }) },
     '/admin/db/indexes': { get: op('Admin', 'Index list per collection') },
     '/admin/db/explain': { get: op('Admin', 'explain() summary for every main query') },
   },

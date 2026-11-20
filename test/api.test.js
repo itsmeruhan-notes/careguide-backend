@@ -188,6 +188,11 @@ test('scenario 1: group by interests', async () => {
   const filtered = await ctx.as('user').get('/users/grouped-by-interests?interest=reading,travel');
   assert.deepEqual(filtered.body.data.map((g) => g.interest).sort(), ['reading', 'travel']);
 
+  const searched = await ctx.as('user').get('/users/grouped-by-interests?q=CH');
+  assert.deepEqual(searched.body.data.map((g) => g.interest), ['chess']);
+  const big = await ctx.as('user').get('/users/grouped-by-interests?minMembers=3');
+  assert.ok(big.body.data.every((g) => g.count >= 3));
+  assert.ok(big.body.data[0].members[0].role);
   const paged = await ctx.as('user').get('/users/grouped-by-interests?limit=2&page=2&sort=name');
   assert.equal(paged.body.data.length, 2);
   assert.ok(paged.body.total > 4);
@@ -243,6 +248,11 @@ test('server-side search on every list', async () => {
   assert.deepEqual(users.body.data.map((u) => u.name), ['karim']);
   const adminUsers = await ctx.as('admin').get('/admin/users?q=s');
   assert.ok(adminUsers.body.data.every((u) => u.name.startsWith('s')));
+  const admins = await ctx.as('admin').get('/admin/users?role=admin');
+  assert.ok(admins.body.data.length >= 1 && admins.body.data.every((u) => u.role === 'admin'));
+  const sharedOnly = await ctx.as('admin').get('/admin/notes?sharing=shared&sort=title&limit=50');
+  assert.ok(sharedOnly.body.data.every((n) => n.sharedCount > 0));
+  assert.equal(typeof sharedOnly.body.counts.deleted, 'number');
   const adminNotes = await ctx.as('admin').get('/admin/notes?q=mim');
   assert.ok(adminNotes.body.data.length >= 1);
   const tagged = await ctx.as('sara').post('/posts', { title: 'Tagged', body: 'x', tags: ['#Design', 'ui'] });
