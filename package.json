@@ -7,7 +7,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "lint": "eslint .",
-    "test": "node --env-file=test/.env.test --test --test-concurrency=1 test/",
+    "test": "node --env-file=test/.env.test --test --test-concurrency=1 test/*.test.js",
     "seed": "node src/seed/run.js",
     "explain": "node scripts/explain-report.js",
     "dev:memory": "node scripts/dev-memory.js"
