@@ -58,8 +58,10 @@ router.get('/grouped-by-interests', async (req, res) => {
   const paging = parsePaging(req.query);
   const raw = [].concat(req.query.interest || []).flatMap((v) => String(v).split(','));
   const interests = [...new Set(raw.map((v) => v.trim().toLowerCase()).filter(Boolean))].slice(0, 10);
-  const { data, total } = await groupByInterests({ interests, sort: req.query.sort, skip: paging.skip, limit: paging.limit });
-  res.json(paged(data.map((g) => ({ ...g, members: g.members.map((m) => ({ id: String(m.id), name: m.name })) })), total, paging));
+  const q = escapeRegex(String(req.query.q || '').trim().toLowerCase().slice(0, 30));
+  const minMembers = Math.min(1000, Math.max(0, Number.parseInt(req.query.minMembers, 10) || 0));
+  const { data, total } = await groupByInterests({ interests, q, minMembers, sort: req.query.sort, skip: paging.skip, limit: paging.limit });
+  res.json(paged(data.map((g) => ({ ...g, members: g.members.map((m) => ({ id: String(m.id), name: m.name, role: m.role })) })), total, paging));
 });
 
 router.get('/:id', async (req, res) => {
@@ -70,7 +72,7 @@ router.get('/:id', async (req, res) => {
 
 router.get('/:id/posts', async (req, res) => {
   const paging = parsePaging(req.query);
-  const [row] = await User.aggregate(userPostsPipeline(toObjectId(req.params.id, 'User'), paging));
+  const [row] = await User.aggregate(userPostsPipeline(toObjectId(req.params.id, 'User'), { ...paging, sort: req.query.sort }));
   if (!row) throw notFound('User');
   const total = row.posts?.total?.[0]?.n || 0;
   res.json({
@@ -80,7 +82,8 @@ router.get('/:id/posts', async (req, res) => {
         id: String(p._id),
         title: p.title,
         body: p.body,
-        author: { id: String(row._id), name: row.name },
+        tags: p.tags || [],
+        author: { id: String(row._id), name: row.name, role: row.role },
         createdAt: p.createdAt,
         updatedAt: p.updatedAt,
       })),

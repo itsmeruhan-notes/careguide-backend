@@ -1,11 +1,15 @@
 import { User } from './models/User.js';
 
-export const groupByInterestsPipeline = ({ interests = [], sort = 'count', skip = 0, limit = 10, membersPerGroup = 50 }) => {
+export const groupByInterestsPipeline = ({ interests = [], q = '', minMembers = 0, sort = 'count', skip = 0, limit = 10, membersPerGroup = 50 }) => {
   const match = interests.length ? { interests: { $in: interests }, status: 'active' } : { interests: { $gte: '' }, status: 'active' };
-  const pipeline = [{ $match: match }, { $project: { name: 1, interests: 1 } }, { $unwind: '$interests' }];
+  const pipeline = [{ $match: match }, { $project: { name: 1, role: 1, interests: 1 } }, { $unwind: '$interests' }];
   if (interests.length) pipeline.push({ $match: { interests: { $in: interests } } });
   pipeline.push(
-    { $group: { _id: '$interests', count: { $sum: 1 }, members: { $push: { id: '$_id', name: '$name' } } } },
+    { $group: { _id: '$interests', count: { $sum: 1 }, members: { $push: { id: '$_id', name: '$name', role: '$role' } } } },
+  );
+  if (q) pipeline.push({ $match: { _id: { $regex: q, $options: 'i' } } });
+  if (minMembers > 1) pipeline.push({ $match: { count: { $gte: minMembers } } });
+  pipeline.push(
     { $sort: sort === 'name' ? { _id: 1 } : { count: -1, _id: 1 } },
     {
       $facet: {
@@ -21,7 +25,7 @@ export const groupByInterestsPipeline = ({ interests = [], sort = 'count', skip 
   return pipeline;
 };
 
-export const userPostsPipeline = (userId, { skip = 0, limit = 10 }) => [
+export const userPostsPipeline = (userId, { skip = 0, limit = 10, sort = 'newest' }) => [
   { $match: { _id: userId, status: 'active' } },
   {
     $lookup: {
@@ -30,10 +34,10 @@ export const userPostsPipeline = (userId, { skip = 0, limit = 10 }) => [
       foreignField: 'author',
       pipeline: [
         { $match: { status: 'active' } },
-        { $sort: { _id: -1 } },
+        { $sort: { _id: sort === 'oldest' ? 1 : -1 } },
         {
           $facet: {
-            data: [{ $skip: skip }, { $limit: limit }, { $project: { title: 1, body: 1, createdAt: 1, updatedAt: 1 } }],
+            data: [{ $skip: skip }, { $limit: limit }, { $project: { title: 1, body: 1, tags: 1, createdAt: 1, updatedAt: 1 } }],
             total: [{ $count: 'n' }],
           },
         },
